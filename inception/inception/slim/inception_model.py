@@ -403,7 +403,9 @@ def inception_v1(inputs,
               branch_2 = ops.conv2d(net, 16, [1, 1], scope='Conv2d_0a_1x1')
               branch_2 = ops.conv2d(branch_2, 32, [3, 3], scope='Conv2d_0b_3x3')
             with tf.variable_scope('Branch_3'):
+              print('net shape before 3x3 maxpool is:' + str(net))
               branch_3 = ops.max_pool(net, [3, 3], scope='MaxPool_0a_3x3')
+              print('net shape after maxpool is:' + str(branch_3))
               branch_3 = ops.conv2d(branch_3, 32, [1, 1], scope='Conv2d_0b_1x1')
             net = tf.concat(3, [branch_0, branch_1, branch_2, branch_3])
           end_points[end_point] = net
@@ -548,18 +550,18 @@ def inception_v1(inputs,
           with tf.variable_scope('Logits'):
             # TODO fix this being in argscope and instead manually supply the correct weights_initializer fn
             # which is probably xavier_initializer() or something
-            net = ops.avg_pool(net, [7, 7], stride=1, scope='MaxPool_0a_7x7')
+            net = ops.avg_pool(net, [7, 7], stride=1, scope='MaxPool_0a_7x7', padding='VALID')
             net = ops.dropout(net,
                               dropout_keep_prob, scope='Dropout_0b')
-            logits = ops.conv2d(net, num_classes, [1, 1], activation_fn=None,
-                                normalizer_fn=None, scope='Conv2d_0c_1x1')
+            logits = ops.conv2d(net, num_classes, [1, 1], activation=None,
+                                scope='Conv2d_0c_1x1')
             logits = tf.squeeze(logits, [1, 2], name='SpatialSqueeze')
             end_points['Logits'] = logits
-            end_points['Predictions'] = prediction_fn(logits, scope='Predictions')          
+            end_points['Predictions'] = tf.nn.softmax(logits, name='Predictions')          
         return logits, end_points
 
 # unused, as far as i can tell? but should work regardless since we want batch_norm=true on v1 anyway
-""""
+"""
 def inception_v1_parameters(weight_decay=0.00004, stddev=0.1,
                             batch_norm_decay=0.9997, batch_norm_epsilon=0.001):
   # Set weight_decay for weights in Conv and FC layers.
@@ -574,4 +576,4 @@ def inception_v1_parameters(weight_decay=0.00004, stddev=0.1,
                               'decay': batch_norm_decay,
                               'epsilon': batch_norm_epsilon}) as arg_scope:
       yield arg_scope
-""""
+"""
