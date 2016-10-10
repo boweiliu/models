@@ -28,6 +28,8 @@ import re
 
 import tensorflow as tf
 
+tf_slim = tf.contrib.slim
+
 from inception.slim import slim
 
 FLAGS = tf.app.flags.FLAGS
@@ -76,9 +78,10 @@ def inference(images, num_classes, for_training=False, restore_logits=True,
   with slim.arg_scope([slim.ops.conv2d, slim.ops.fc], weight_decay=0.00004):
     with slim.arg_scope([slim.ops.conv2d],
                         stddev=0.1,
+                        weights_initializer=tf_slim.variance_scaling_initializer(),
                         activation=tf.nn.relu,
                         batch_norm_params=batch_norm_params):
-      logits, endpoints = slim.inception.inception_v3(
+      logits, endpoints = slim.inception.inception_v1(
           images,
           dropout_keep_prob=0.8,
           num_classes=num_classes,
@@ -90,9 +93,15 @@ def inference(images, num_classes, for_training=False, restore_logits=True,
   _activation_summaries(endpoints)
 
   # Grab the logits associated with the side head. Employed during training.
-  auxiliary_logits = endpoints['aux_logits']
+  if 'aux_logits' in endpoints:
+    logits = (logits, endpoints['aux_logits'])
+  else:
+    logits = (logits,)
 
-  return logits, auxiliary_logits
+  return logits
+#  auxiliary_logits = endpoints['aux_logits']
+
+#  return logits, auxiliary_logits
 
 
 def loss(logits, labels, batch_size=None):
@@ -128,7 +137,8 @@ def loss(logits, labels, batch_size=None):
                                  weight=1.0)
 
   # Cross entropy loss for the auxiliary softmax head.
-  slim.losses.cross_entropy_loss(logits[1],
+  if len(logits) >= 2:
+    slim.losses.cross_entropy_loss(logits[1],
                                  dense_labels,
                                  label_smoothing=0.1,
                                  weight=0.4,

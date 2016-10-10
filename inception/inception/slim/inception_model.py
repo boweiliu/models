@@ -354,3 +354,224 @@ def inception_v3_parameters(weight_decay=0.00004, stddev=0.1,
                               'decay': batch_norm_decay,
                               'epsilon': batch_norm_epsilon}) as arg_scope:
       yield arg_scope
+
+
+def inception_v1(inputs,
+                 dropout_keep_prob=0.8,
+                 num_classes=1000,
+                 is_training=True,
+                 restore_logits=True,
+                 scope=''):
+  """inception v1
+  Returns:
+    a list like ('logits', ) of Tensors.
+  """
+  # end_points will collect relevant activations for external use, for example
+  # summaries or losses.
+  end_points = {}
+  with tf.op_scope([inputs], scope, 'inception_v1'):
+    with scopes.arg_scope([ops.conv2d, ops.fc, ops.batch_norm, ops.dropout],
+                          is_training=is_training):
+      # replaces weights_initializer with trunc_norm(0.01) since w_i is not specified
+      with scopes.arg_scope([ops.conv2d, ops.fc], stddev=0.01): 
+        with scopes.arg_scope([ops.conv2d, ops.max_pool, ops.avg_pool],
+                              stride=1, padding='SAME'):
+          end_point = 'Conv2d_1a_7x7'
+          net = ops.conv2d(inputs, 64, [7, 7], stride=2, scope=end_point)
+          end_points[end_point] = net
+          end_point = 'MaxPool_2a_3x3'
+          net = ops.max_pool(net, [3, 3], stride=2, scope=end_point)
+          end_points[end_point] = net
+          end_point = 'Conv2d_2b_1x1'
+          net = ops.conv2d(net, 64, [1, 1], scope=end_point)
+          end_points[end_point] = net
+          end_point = 'Conv2d_2c_3x3'
+          net = ops.conv2d(net, 192, [3, 3], scope=end_point)
+          end_points[end_point] = net
+          end_point = 'MaxPool_3a_3x3'
+          net = ops.max_pool(net, [3, 3], stride=2, scope=end_point)
+          end_points[end_point] = net
+
+          end_point = 'Mixed_3b'
+          with tf.variable_scope(end_point):
+            with tf.variable_scope('Branch_0'):
+              branch_0 = ops.conv2d(net, 64, [1, 1], scope='Conv2d_0a_1x1')
+            with tf.variable_scope('Branch_1'):
+              branch_1 = ops.conv2d(net, 96, [1, 1], scope='Conv2d_0a_1x1')
+              branch_1 = ops.conv2d(branch_1, 128, [3, 3], scope='Conv2d_0b_3x3')
+            with tf.variable_scope('Branch_2'):
+              branch_2 = ops.conv2d(net, 16, [1, 1], scope='Conv2d_0a_1x1')
+              branch_2 = ops.conv2d(branch_2, 32, [3, 3], scope='Conv2d_0b_3x3')
+            with tf.variable_scope('Branch_3'):
+              branch_3 = ops.max_pool(net, [3, 3], scope='MaxPool_0a_3x3')
+              branch_3 = ops.conv2d(branch_3, 32, [1, 1], scope='Conv2d_0b_1x1')
+            net = tf.concat(3, [branch_0, branch_1, branch_2, branch_3])
+          end_points[end_point] = net
+
+          end_point = 'Mixed_3c'
+          with tf.variable_scope(end_point):
+            with tf.variable_scope('Branch_0'):
+              branch_0 = ops.conv2d(net, 128, [1, 1], scope='Conv2d_0a_1x1')
+            with tf.variable_scope('Branch_1'):
+              branch_1 = ops.conv2d(net, 128, [1, 1], scope='Conv2d_0a_1x1')
+              branch_1 = ops.conv2d(branch_1, 192, [3, 3], scope='Conv2d_0b_3x3')
+            with tf.variable_scope('Branch_2'):
+              branch_2 = ops.conv2d(net, 32, [1, 1], scope='Conv2d_0a_1x1')
+              branch_2 = ops.conv2d(branch_2, 96, [3, 3], scope='Conv2d_0b_3x3')
+            with tf.variable_scope('Branch_3'):
+              branch_3 = ops.max_pool(net, [3, 3], scope='MaxPool_0a_3x3')
+              branch_3 = ops.conv2d(branch_3, 64, [1, 1], scope='Conv2d_0b_1x1')
+            net = tf.concat(3, [branch_0, branch_1, branch_2, branch_3])
+          end_points[end_point] = net
+
+          end_point = 'MaxPool_4a_3x3'
+          net = ops.max_pool(net, [3, 3], stride=2, scope=end_point)
+          end_points[end_point] = net
+
+          end_point = 'Mixed_4b'
+          with tf.variable_scope(end_point):
+            with tf.variable_scope('Branch_0'):
+              branch_0 = ops.conv2d(net, 192, [1, 1], scope='Conv2d_0a_1x1')
+            with tf.variable_scope('Branch_1'):
+              branch_1 = ops.conv2d(net, 96, [1, 1], scope='Conv2d_0a_1x1')
+              branch_1 = ops.conv2d(branch_1, 208, [3, 3], scope='Conv2d_0b_3x3')
+            with tf.variable_scope('Branch_2'):
+              branch_2 = ops.conv2d(net, 16, [1, 1], scope='Conv2d_0a_1x1')
+              branch_2 = ops.conv2d(branch_2, 48, [3, 3], scope='Conv2d_0b_3x3')
+            with tf.variable_scope('Branch_3'):
+              branch_3 = ops.max_pool(net, [3, 3], scope='MaxPool_0a_3x3')
+              branch_3 = ops.conv2d(branch_3, 64, [1, 1], scope='Conv2d_0b_1x1')
+            net = tf.concat(3, [branch_0, branch_1, branch_2, branch_3])
+          end_points[end_point] = net
+
+          end_point = 'Mixed_4c'
+          with tf.variable_scope(end_point):
+            with tf.variable_scope('Branch_0'):
+              branch_0 = ops.conv2d(net, 160, [1, 1], scope='Conv2d_0a_1x1')
+            with tf.variable_scope('Branch_1'):
+              branch_1 = ops.conv2d(net, 112, [1, 1], scope='Conv2d_0a_1x1')
+              branch_1 = ops.conv2d(branch_1, 224, [3, 3], scope='Conv2d_0b_3x3')
+            with tf.variable_scope('Branch_2'):
+              branch_2 = ops.conv2d(net, 24, [1, 1], scope='Conv2d_0a_1x1')
+              branch_2 = ops.conv2d(branch_2, 64, [3, 3], scope='Conv2d_0b_3x3')
+            with tf.variable_scope('Branch_3'):
+              branch_3 = ops.max_pool(net, [3, 3], scope='MaxPool_0a_3x3')
+              branch_3 = ops.conv2d(branch_3, 64, [1, 1], scope='Conv2d_0b_1x1')
+            net = tf.concat(3, [branch_0, branch_1, branch_2, branch_3])
+          end_points[end_point] = net
+
+          end_point = 'Mixed_4d'
+          with tf.variable_scope(end_point):
+            with tf.variable_scope('Branch_0'):
+              branch_0 = ops.conv2d(net, 128, [1, 1], scope='Conv2d_0a_1x1')
+            with tf.variable_scope('Branch_1'):
+              branch_1 = ops.conv2d(net, 128, [1, 1], scope='Conv2d_0a_1x1')
+              branch_1 = ops.conv2d(branch_1, 256, [3, 3], scope='Conv2d_0b_3x3')
+            with tf.variable_scope('Branch_2'):
+              branch_2 = ops.conv2d(net, 24, [1, 1], scope='Conv2d_0a_1x1')
+              branch_2 = ops.conv2d(branch_2, 64, [3, 3], scope='Conv2d_0b_3x3')
+            with tf.variable_scope('Branch_3'):
+              branch_3 = ops.max_pool(net, [3, 3], scope='MaxPool_0a_3x3')
+              branch_3 = ops.conv2d(branch_3, 64, [1, 1], scope='Conv2d_0b_1x1')
+            net = tf.concat(3, [branch_0, branch_1, branch_2, branch_3])
+          end_points[end_point] = net
+
+          end_point = 'Mixed_4e'
+          with tf.variable_scope(end_point):
+            with tf.variable_scope('Branch_0'):
+              branch_0 = ops.conv2d(net, 112, [1, 1], scope='Conv2d_0a_1x1')
+            with tf.variable_scope('Branch_1'):
+              branch_1 = ops.conv2d(net, 144, [1, 1], scope='Conv2d_0a_1x1')
+              branch_1 = ops.conv2d(branch_1, 288, [3, 3], scope='Conv2d_0b_3x3')
+            with tf.variable_scope('Branch_2'):
+              branch_2 = ops.conv2d(net, 32, [1, 1], scope='Conv2d_0a_1x1')
+              branch_2 = ops.conv2d(branch_2, 64, [3, 3], scope='Conv2d_0b_3x3')
+            with tf.variable_scope('Branch_3'):
+              branch_3 = ops.max_pool(net, [3, 3], scope='MaxPool_0a_3x3')
+              branch_3 = ops.conv2d(branch_3, 64, [1, 1], scope='Conv2d_0b_1x1')
+            net = tf.concat(3, [branch_0, branch_1, branch_2, branch_3])
+          end_points[end_point] = net
+
+          end_point = 'Mixed_4f'
+          with tf.variable_scope(end_point):
+            with tf.variable_scope('Branch_0'):
+              branch_0 = ops.conv2d(net, 256, [1, 1], scope='Conv2d_0a_1x1')
+            with tf.variable_scope('Branch_1'):
+              branch_1 = ops.conv2d(net, 160, [1, 1], scope='Conv2d_0a_1x1')
+              branch_1 = ops.conv2d(branch_1, 320, [3, 3], scope='Conv2d_0b_3x3')
+            with tf.variable_scope('Branch_2'):
+              branch_2 = ops.conv2d(net, 32, [1, 1], scope='Conv2d_0a_1x1')
+              branch_2 = ops.conv2d(branch_2, 128, [3, 3], scope='Conv2d_0b_3x3')
+            with tf.variable_scope('Branch_3'):
+              branch_3 = ops.max_pool(net, [3, 3], scope='MaxPool_0a_3x3')
+              branch_3 = ops.conv2d(branch_3, 128, [1, 1], scope='Conv2d_0b_1x1')
+            net = tf.concat(3, [branch_0, branch_1, branch_2, branch_3])
+          end_points[end_point] = net
+
+          end_point = 'MaxPool_5a_2x2'
+          net = ops.max_pool(net, [2, 2], stride=2, scope=end_point)
+          end_points[end_point] = net
+
+          end_point = 'Mixed_5b'
+          with tf.variable_scope(end_point):
+            with tf.variable_scope('Branch_0'):
+              branch_0 = ops.conv2d(net, 256, [1, 1], scope='Conv2d_0a_1x1')
+            with tf.variable_scope('Branch_1'):
+              branch_1 = ops.conv2d(net, 160, [1, 1], scope='Conv2d_0a_1x1')
+              branch_1 = ops.conv2d(branch_1, 320, [3, 3], scope='Conv2d_0b_3x3')
+            with tf.variable_scope('Branch_2'):
+              branch_2 = ops.conv2d(net, 32, [1, 1], scope='Conv2d_0a_1x1')
+              branch_2 = ops.conv2d(branch_2, 128, [3, 3], scope='Conv2d_0a_3x3')
+            with tf.variable_scope('Branch_3'):
+              branch_3 = ops.max_pool(net, [3, 3], scope='MaxPool_0a_3x3')
+              branch_3 = ops.conv2d(branch_3, 128, [1, 1], scope='Conv2d_0b_1x1')
+            net = tf.concat(3, [branch_0, branch_1, branch_2, branch_3])
+          end_points[end_point] = net
+
+          end_point = 'Mixed_5c'
+          with tf.variable_scope(end_point):
+            with tf.variable_scope('Branch_0'):
+              branch_0 = ops.conv2d(net, 384, [1, 1], scope='Conv2d_0a_1x1')
+            with tf.variable_scope('Branch_1'):
+              branch_1 = ops.conv2d(net, 192, [1, 1], scope='Conv2d_0a_1x1')
+              branch_1 = ops.conv2d(branch_1, 384, [3, 3], scope='Conv2d_0b_3x3')
+            with tf.variable_scope('Branch_2'):
+              branch_2 = ops.conv2d(net, 48, [1, 1], scope='Conv2d_0a_1x1')
+              branch_2 = ops.conv2d(branch_2, 128, [3, 3], scope='Conv2d_0b_3x3')
+            with tf.variable_scope('Branch_3'):
+              branch_3 = ops.max_pool(net, [3, 3], scope='MaxPool_0a_3x3')
+              branch_3 = ops.conv2d(branch_3, 128, [1, 1], scope='Conv2d_0b_1x1')
+            net = tf.concat(3, [branch_0, branch_1, branch_2, branch_3])
+          end_points[end_point] = net
+
+          # Final pooling and prediction
+          with tf.variable_scope('Logits'):
+            # TODO fix this being in argscope and instead manually supply the correct weights_initializer fn
+            # which is probably xavier_initializer() or something
+            net = ops.avg_pool(net, [7, 7], stride=1, scope='MaxPool_0a_7x7')
+            net = ops.dropout(net,
+                              dropout_keep_prob, scope='Dropout_0b')
+            logits = ops.conv2d(net, num_classes, [1, 1], activation_fn=None,
+                                normalizer_fn=None, scope='Conv2d_0c_1x1')
+            logits = tf.squeeze(logits, [1, 2], name='SpatialSqueeze')
+            end_points['Logits'] = logits
+            end_points['Predictions'] = prediction_fn(logits, scope='Predictions')          
+        return logits, end_points
+
+# unused, as far as i can tell? but should work regardless since we want batch_norm=true on v1 anyway
+""""
+def inception_v1_parameters(weight_decay=0.00004, stddev=0.1,
+                            batch_norm_decay=0.9997, batch_norm_epsilon=0.001):
+  # Set weight_decay for weights in Conv and FC layers.
+  with scopes.arg_scope([ops.conv2d, ops.fc],
+                        weight_decay=weight_decay):
+    # Set stddev, activation and parameters for batch_norm.
+    with scopes.arg_scope([ops.conv2d],
+                          stddev=stddev,
+                          weights_initializer=TODO ????
+                          activation=tf.nn.relu,
+                          batch_norm_params={
+                              'decay': batch_norm_decay,
+                              'epsilon': batch_norm_epsilon}) as arg_scope:
+      yield arg_scope
+""""
