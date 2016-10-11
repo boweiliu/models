@@ -22,6 +22,16 @@ from __future__ import print_function
 
 from inception.dataset import Dataset
 
+tf.app.flags.DEFINE_string('data_dir', '/tmp/mydata',
+                           """Path to the processed data, i.e. """
+                           """TFRecord of Example protos.""")
+
+tf.app.flags.DEFINE_integer('train_size', '24800', 'number of training examples')
+tf.app.flags.DEFINE_integer('val_size', '2480', 'number of validation examples')
+tf.app.flags.DEFINE_integer('num_classes', '2', 'number of classes')
+
+FLAGS = tf.app.flags.FLAGS
+
 
 class ImagenetData(Dataset):
   """ImageNet data set."""
@@ -31,15 +41,15 @@ class ImagenetData(Dataset):
 
   def num_classes(self):
     """Returns the number of classes in the data set."""
-    return 2
+    return FLAGS.num_classes
 
   def num_examples_per_epoch(self):
     """Returns the number of examples in the data set."""
     # Bounding box data consists of 615299 bounding boxes for 544546 images.
     if self.subset == 'train':
-      return 24800
+      return FLAGS.train_size
     if self.subset == 'validation':
-      return 2480
+      return FLAGS.val_size
 
   def download_message(self):
     """Instruction to download and extract the tarball from Flowers website."""
