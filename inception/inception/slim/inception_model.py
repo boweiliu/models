@@ -369,7 +369,7 @@ def inception_v1(inputs,
   # end_points will collect relevant activations for external use, for example
   # summaries or losses.
   end_points = {}
-  with tf.op_scope([inputs], scope, 'inception_v1'):
+  with tf.op_scope([inputs], scope, 'InceptionV1'):
     with scopes.arg_scope([ops.conv2d, ops.fc, ops.batch_norm, ops.dropout],
                           is_training=is_training):
       # replaces weights_initializer with trunc_norm(0.01) since w_i is not specified
@@ -554,10 +554,12 @@ def inception_v1(inputs,
             net = ops.dropout(net,
                               dropout_keep_prob, scope='Dropout_0b')
             logits = ops.conv2d(net, num_classes, [1, 1], activation=None,
+                                batch_norm_params=None,
                                 scope='Conv2d_0c_1x1')
             logits = tf.squeeze(logits, [1, 2], name='SpatialSqueeze')
             end_points['Logits'] = logits
             end_points['Predictions'] = tf.nn.softmax(logits, name='Predictions')          
+        [ print(v.name) for v in tf.all_variables() ]
         return logits, end_points
 
 # unused, as far as i can tell? but should work regardless since we want batch_norm=true on v1 anyway
