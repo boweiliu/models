@@ -145,7 +145,7 @@ def evaluate(dataset):
 
     # Build a Graph that computes the logits predictions from the
     # inference model.
-    logits, _ = inception.inference(images, num_classes)
+    logits = (inception.inference(images, num_classes))[0]
 
     # Calculate predictions.
     top_1_op = tf.nn.in_top_k(logits, labels, 1)
